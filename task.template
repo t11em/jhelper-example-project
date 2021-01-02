@@ -1,4 +1,28 @@
+#include <algorithm>
+#include <cmath>
+#include <fstream>
+#include <functional>
 #include <iostream>
+#include <iterator>
+#include <map>
+#include <numeric>
+#include <queue>
+#include <regex>
+#include <set>
+#include <stack>
+#include <string>
+#include <vector>
+
+#define rep(i, m, n) for (int i = (int)(m); i < (int)(n); ++i)
+#define rrep(i, m, n) for (int i = (int)(m); i > (int)(n); --i)
+
+using namespace std;
+
+template <typename T, typename U> pair<T, U> tp(T a, U b) {
+  return std::make_pair(a, b);
+}
+
+constexpr int MOD = 1000000007;
 
 class %ClassName% {
 public:
