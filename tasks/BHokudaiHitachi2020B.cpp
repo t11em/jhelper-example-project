@@ -21,6 +21,10 @@
 
 using namespace std;
 
+#ifndef DEBUG_OUTPUT
+#define DEBUG_OUTPUT
+#endif
+
 ofstream ofs("error.log");
 template <typename T, typename U>
 pair<T, U> tp(T a, U b) {
@@ -463,7 +467,6 @@ struct energy : strategy<B> {
         size_t cur = current;
         for (auto [to, pick_up] : path) {
 #ifdef DEBUG_OUTPUT
-            ofs << "need_energy" << need_energy << endl;
             ofs << "ev_i.c[ev_index].charge: " << ev_i.c[ev_index].charge << endl;
             ofs << "gs.len[cur][to]: " << gs.len[cur][to] << " cur: " << cur << " to: " << to << endl;
             ofs << "EV.Delta_EV_move: " << EV.Delta_EV_move << endl;
@@ -698,4 +701,3 @@ class BHokudaiHitachi2020B {
             cin >> S_trans >> S_ele;
         }
     }
-};
