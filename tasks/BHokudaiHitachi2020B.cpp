@@ -81,9 +81,11 @@ struct grid_data {
 struct EV_data {
     size_t              N_EV, C_EV_init, C_EV_max, V_EV_max, N_trans_max, Delta_EV_move;
     std::vector<size_t> pos;
+    std::vector<size_t> now_charge;
     EV_data(std::istream& src) {
         src >> N_EV >> C_EV_init >> C_EV_max >> V_EV_max >> N_trans_max >> Delta_EV_move;
         pos.resize(N_EV);
+        now_charge.resize(N_EV);
         for (size_t i = 0; i < N_EV; ++i) {
             src >> pos[i];
             --pos[i];
@@ -389,7 +391,7 @@ struct strategy : public P {
     const graph_summary& gs;
     vector<list<string>> command_queue;
     strategy(const P& p, const graph_summary& gs) : P(p), gs(gs), command_queue(P::EV.N_EV) {}
-    virtual void command(const grid_info& g_i, const EV_info& ev_i, const order_info& order_i) = 0;
+    virtual void command(const grid_info& g_i, EV_info& ev_i, const order_info& order_i) = 0;
     virtual void initialize() {
         for (auto& queue : command_queue) queue.clear();
     }
@@ -429,7 +431,7 @@ struct energy : strategy<B> {
         strategy::initialize();
         assigned_order.clear();
     }
-    void update_command(const size_t ev_index, const EV_info& ev_i, const order_info& order_i, const size_t current) {
+    void update_command(const size_t ev_index, EV_info& ev_i, const order_info& order_i, const size_t current) {
         std::set<size_t> unassigned_order;
         for (size_t i = 0; i < order_i.N_order; ++i)
             if (assigned_order.count(order_i.id[i]) == 0) unassigned_order.insert(i);
@@ -449,11 +451,14 @@ struct energy : strategy<B> {
         transit.reserve(path.size() + 1);
         const size_t expected_transit_length = transit_length(path, gs.len) + gs.len[current][path[0].first];
         if (ev_i.c[ev_index].charge < (expected_transit_length + gs.cover_radius) * EV.Delta_EV_move) {
+            size_t charge_energy = min(
+                EV.V_EV_max, (expected_transit_length + gs.cover_radius) * EV.Delta_EV_move - ev_i.c[ev_index].charge);
             enqueue(ev_index,
-                    strprintf("charge_from_grid %zu", EV.V_EV_max),
+                    strprintf("charge_from_grid %zu", charge_energy),
                     ((expected_transit_length + gs.cover_radius) * EV.Delta_EV_move - ev_i.c[ev_index].charge) /
-                            EV.V_EV_max +
+                            charge_energy +
                         1);
+            ev_i.c[ev_index].charge = charge_energy;
         }
         size_t cur = current;
         for (auto [to, pick_up] : path) {
@@ -472,7 +477,7 @@ struct energy : strategy<B> {
 #endif
         }
     }
-    void command(const grid_info& gi, const EV_info& ev_info, const order_info& order_i) override {
+    void command(const grid_info& gi, EV_info& ev_info, const order_info& order_i) override {
         for (size_t ev_index = 0; ev_index < ev_info.N_EV; ++ev_index) {
             if (!is_free(ev_index)) continue;
             const size_t current       = ev_info.c[ev_index].u;
@@ -484,12 +489,14 @@ struct energy : strategy<B> {
                     enqueue(ev_index, "stay", 1000);
                 } else
                     enqueue(ev_index, move_EV(current, pos, gs));
+                    ev_info.c[ev_index].charge -= expected_energy;
                 continue;
             } else {
                 if (ev_info.c[ev_index].charge < safety_energy) {
                     enqueue(ev_index,
                             strprintf("charge_from_grid %zu", EV.V_EV_max),
                             ceil(1.0 * (safety_energy - ev_info.c[ev_index].charge) / EV.V_EV_max));
+                    ev_info.c[ev_index].charge = EV.V_EV_max;
                     continue;
                 }
             }
@@ -507,7 +514,7 @@ struct random_walk : strategy<P> {
     using S = strategy<P>;
     std::mt19937_64 engine;
     random_walk(const P& p, const graph_summary& gs) : strategy<P>(p, gs) {}
-    void command(const grid_info&, const EV_info& ev_i, const order_info&) {
+    void command(const grid_info&, EV_info& ev_i, const order_info&) {
         for (size_t n = 0; n < ev_i.N_EV; ++n) {
             if (!S::is_free(n)) continue;
             const size_t current       = ev_i.c[n].u;
@@ -541,7 +548,7 @@ struct transport_only_0 : strategy<B> {
         strategy::initialize();
         assigned_order.clear();
     }
-    void command(const grid_info&, const EV_info& ev_i, const order_info& order_i) override {
+    void command(const grid_info&, EV_info& ev_i, const order_info& order_i) override {
         for (size_t n = 0; n < ev_i.N_EV; ++n) {
             if (!is_free(n)) continue;
             const size_t current       = ev_i.c[n].u;
