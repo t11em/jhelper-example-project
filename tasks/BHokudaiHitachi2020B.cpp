@@ -701,3 +701,4 @@ class BHokudaiHitachi2020B {
             cin >> S_trans >> S_ele;
         }
     }
+};
