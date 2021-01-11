@@ -21,6 +21,7 @@
 
 using namespace std;
 
+ofstream ofs("error.log");
 template <typename T, typename U>
 pair<T, U> tp(T a, U b) {
     return std::make_pair(a, b);
@@ -456,9 +457,19 @@ struct energy : strategy<B> {
         }
         size_t cur = current;
         for (auto [to, pick_up] : path) {
+#ifdef DEBUG_OUTPUT
+            ofs << "need_energy" << need_energy << endl;
+            ofs << "ev_i.c[ev_index].charge: " << ev_i.c[ev_index].charge << endl;
+            ofs << "gs.len[cur][to]: " << gs.len[cur][to] << " cur: " << cur << " to: " << to << endl;
+            ofs << "EV.Delta_EV_move: " << EV.Delta_EV_move << endl;
+            ofs << "destination: " << path[0].first << endl;
+#endif
             enqueue(ev_index, move_EV(cur, to, gs));
             if (pick_up != -1) enqueue(ev_index, strprintf("pickup %d", pick_up));
             cur = to;
+#ifdef DEBUG_OUTPUT
+            ofs << "---------------------" << endl;
+#endif
         }
     }
     void command(const grid_info& gi, const EV_info& ev_info, const order_info& order_i) override {
