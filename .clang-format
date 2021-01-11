@@ -1,0 +1,10 @@
+BasedOnStyle: 'Google'
+AccessModifierOffset: -3
+IndentWidth: 4
+DerivePointerAlignment: false
+BinPackArguments: false
+SortIncludes: false
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+TabWidth: 4
+ColumnLimit: 120

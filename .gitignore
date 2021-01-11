@@ -1,0 +1,4 @@
+build/
+cmake-build-debug/
+jhelper-example-project.cbp
+.idea/
